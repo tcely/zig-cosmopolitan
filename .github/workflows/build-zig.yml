@@ -1,0 +1,77 @@
+name: Build Zig APE
+
+on:
+  push:
+    branches: ["main", "master"]
+    tags: ["v*"]
+  workflow_dispatch:
+
+# Queue concurrent builds to prevent race conditions on shared caches/releases
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Extract
+        uses: docker/build-push-action@v5
+        with:
+          context: docker
+          file: docker/Dockerfile
+          platforms: linux/amd64
+          target: export_binary
+          outputs: type=local,dest=./bin
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Generate Checksums
+        run: |
+          cd bin
+          chmod +x zig.com zig-wasm2c
+          sha512sum --tag zig.com zig-wasm2c > SUMS
+          cat SUMS
+
+      - name: Verify Static Compilation (x86_64 and aarch64)
+        run: |
+          cd bin
+          printf '#include <stdio.h>\nint main() { printf("Hello from %%s\\n", TARGET_NAME); return 0; }\n' > hello.c
+          
+          # 1. Verify x86_64 Native Static Musl
+          ./zig.com build-exe hello.c -target x86_64-linux-musl -lc --name hello_x86_64 -DTARGET_NAME=\"x86_64\"
+          file hello_x86_64 | grep -q "x86-64"
+          file hello_x86_64 | grep -q "statically linked"
+          ./hello_x86_64 | grep -q "Hello from x86_64"
+          
+          # 2. Verify aarch64 Cross-compiled Static Musl
+          ./zig.com build-exe hello.c -target aarch64-linux-musl -lc --name hello_aarch64 -DTARGET_NAME=\"aarch64\"
+          file hello_aarch64 | grep -q "ARM aarch64"
+          file hello_aarch64 | grep -q "statically linked"
+          qemu-aarch64 ./hello_aarch64 | grep -q "Hello from aarch64"
+          
+          rm hello.c hello_x86_64 hello_aarch64
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            bin/zig.com
+            bin/zig-wasm2c
+            bin/SUMS
+          generate_release_notes: true
+          
