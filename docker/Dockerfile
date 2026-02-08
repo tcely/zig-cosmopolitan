@@ -107,35 +107,42 @@ RUN cosmocc -o zig-wasm2c.com stage1/wasm2c.c -O2 -std=c99 && \
 RUN ls -ARhl stage1/ src/main.zig
 # 2. Generate required 0.15.2 configuration and run the translation
 RUN set -ex; \
-    # Create a minimalist config.zig that doesn't depend on a full std library yet
-    printf 'pub const version = "0.15.2";\npub const build_root = ".";\npub const cache_root = "zig-cache";\n' > stage1/config.zig && \
+    # 1. Create a valid config.zig (0.15.x requires these specific fields)
+    printf 'pub const version = "0.15.2";\npub const build_root = ".";\npub const cache_root = "zig-cache";\npub const global_cache_root = "zig-cache";\npub const std_root = "lib/std/std.zig";\n' > stage1/config.zig && \
     \
-    # Invoke zig1.com in "bare" mode (no subcommand). 
-    # Using '=' is critical for Cosmopolitan's WASI argument passthrough.
-    ./zig1.com \
+    # 2. Define Module and Dependency strings
+    # We use the double-colon syntax and ensure build_options is a dependency of root.
+    MODS="--mod build_options::stage1/config.zig --mod root::src/main.zig --deps build_options" && \
+    \
+    # 3. Execute zig1.com
+    # We use build-obj because it's the most reliable way to get C output without a linker.
+    # We use single-dash flags with '=' to ensure Cosmocc's WASI shim passes them correctly.
+    ./zig1.com build-obj \
       -ofmt=c \
       -O2 \
       -target=x86_64-linux-musl \
       --name=zig2 \
-      --mod=build_options::stage1/config.zig \
-      --mod=root::src/main.zig \
-      --deps=build_options,root || \
+      ${MODS} || \
     \
-    # Emergency fallback for specific WASM-to-C builds that expect positional args
-    ./zig1.com -ofmt=c -target=x86_64-linux-musl src/main.zig; \
+    # Fallback: Bare-bones attempt without the subcommand if the above fails
+    ./zig1.com \
+      -ofmt=c \
+      -target=x86_64-linux-musl \
+      --name=zig2 \
+      ${MODS}; \
     \
-    # If the compiler succeeded but produced root.c instead of zig2.c, rename it
+    # 4. Locate and rename the output
+    # If the compiler uses the module name for the filename, it will be 'root.c'
     if [ ! -f zig2.c ]; then \
-        GENERATED_C=$(find . -maxdepth 1 -name "*.c" ! -name "zig1.c" ! -name "wasi.c" | head -n 1); \
-        if [ -n "$GENERATED_C" ]; then cp "$GENERATED_C" zig2.c; fi; \
+        if [ -f root.c ]; then cp root.c zig2.c; \
+        else \
+            GENERATED_C=$(find . -maxdepth 1 -name "*.c" ! -name "zig1.c" ! -name "wasi.c" | head -n 1); \
+            if [ -n "$GENERATED_C" ]; then cp "$GENERATED_C" zig2.c; fi; \
+        fi; \
     fi; \
     \
-    # Verify we have the source, then compile the Stage 2 compiler
+    # 5. Verify and Compile Stage 2
     [ -f zig2.c ] || (echo "FATAL: Could not generate zig2.c" && exit 1);
-
-RUN cosmocc -o zig-wasm2c.com stage1/wasm2c.c -O2 -std=c99 && \
-    ./zig-wasm2c.com stage1/zig1.wasm zig1.c && \
-    cosmocc -o zig1.com zig1.c stage1/wasi.c -std=c99 -Os -lm -Wl,-z,stack-size=0x10000000
 
 RUN cosmocc -o zig2.com zig2.c -O2 -lm -Wl,-z,stack-size=0x10000000
 
