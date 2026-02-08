@@ -50,8 +50,7 @@ RUN . /build/common.sh && \
         gpg2 --verify cosmocc.zip.sig cosmocc.zip || fatal "GPG signature verification failed"; \
     fi && \
     mkdir -p /opt/cosmocc && \
-    bsdtar -xf cosmocc.zip -C /opt/cosmocc && \
-    rm cosmocc.zip cosmocc.zip.sig author.asc cosmocc.zip.sha256
+    bsdtar -xf cosmocc.zip -C /opt/cosmocc
 
 # Zig Metadata, Source, and Bootstrap Extraction
 ARG HOST_ZIG_DL="ziglang.org"
