@@ -24,8 +24,7 @@ RUN lines() { printf -- '%s\n' "$@"; } && \
     } > /build/common.sh
 
 # Record GPG Key Metadata (Stable identity)
-ARG COSMO_GPG_KEY_ID
-ENV COSMO_GPG_KEY_ID="${COSMO_GPG_KEY_ID}"
+ENV COSMO_GPG_PUB_KEY_ID="0x65A68CC8F87C5311"
 ENV COSMO_GPG_FINGERPRINT="9924 9E69 A705 668F 9983  9365 65A6 8CC8 F87C 5311"
 ARG COSMO_AUTHOR_HOST="justine.lol"
 ADD "https://${COSMO_AUTHOR_HOST}/cosmos.asc" /build/author.asc
@@ -45,7 +44,7 @@ RUN . /build/common.sh && \
     SIG_URL="https://${COSMO_DL_HOST}/pub/cosmocc/cosmocc-${COSMO_VER}.zip.sig" && \
     if curl -o /build/cosmocc.zip.sig -sSfL "${SIG_URL}"; then \
         gpg2 --import author.asc || fatal "Failed to import GPG key" && \
-        ACTUAL_FPR=$(gpg2 --with-colons --with-fingerprint --list-keys "${COSMO_GPG_KEY_ID}" | awk -F: '/^fpr/ {print $10}') && \
+        ACTUAL_FPR=$(gpg2 --with-colons --with-fingerprint --list-keys "${COSMO_GPG_PUB_KEY_ID}" | awk -F: '/^fpr/ {print $10}') && \
         printf '%s' "${ACTUAL_FPR}" | grep -iq "$(printf '%s' "${COSMO_GPG_FINGERPRINT}" | tr -d ' ')" || fatal "Fingerprint mismatch" && \
         printf '%s:6:\n' "${ACTUAL_FPR}" | gpg2 --import-ownertrust && \
         gpg2 --verify cosmocc.zip.sig cosmocc.zip || fatal "GPG signature verification failed"; \
