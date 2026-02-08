@@ -87,7 +87,7 @@ RUN . /build/common.sh && \
 
 # Stage 2: Builder - Bootstrap and Verify
 FROM debian:${DEBIAN_VERSION}-slim AS builder_base
-RUN apt-get update && apt-get install -y file && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y binutils file && rm -rf /var/lib/apt/lists/*
 COPY --from=extractor /opt/cosmocc /opt/cosmocc
 COPY --from=extractor /build/zig /build/zig
 ENV PATH="/opt/cosmocc/bin:${PATH}"
@@ -102,9 +102,21 @@ RUN cosmocc -o zig-wasm2c.com stage1/wasm2c.c -O2 -std=c99 && \
 
 RUN strings ./zig1.com | grep -E "^(build-exe|build-obj|update-zig1|-ofmt=|-O[0-9]|--mod|--deps)$" | sort -u
 
-RUN ./zig1.com -ofmt=c -OReleaseSmall \
-    -target x86_64-linux-musl --mod root:src/main.zig --deps root && \
-    cosmocc -o zig2.com zig2.c -O2 -lm -Wl,-z,stack-size=0x10000000
+RUN ./zig1.com build-exe \
+    --mod root:src/main.zig \
+    --deps root \
+    -target x86_64-linux-musl \
+    -ofmt=c \
+    -lc \
+    -O2 || \
+    ./zig1.com build-obj \
+    --mod root:src/main.zig \
+    --deps root \
+    -target x86_64-linux-musl \
+    -ofmt=c \
+    -O2
+
+RUN cosmocc -o zig2.com zig2.c -O2 -lm -Wl,-z,stack-size=0x10000000
 
 # Validation
 RUN printf '#include <stdio.h>\nint main() { printf("Hello Static Musl\\n"); return 0; }\n' > hello.c && \
