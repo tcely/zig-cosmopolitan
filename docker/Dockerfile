@@ -120,7 +120,7 @@ RUN set -ex; \
     ./zig1.com lib build-obj \
       -ofmt=c \
       -OReleaseSmall \
-      -target=x86_64-linux-musl \
+      -target x86_64-linux-musl \
       -femit-bin=zig2.c \
       --mod build_options::stage1/config.zig \
       --mod root::src/main.zig \
