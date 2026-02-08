@@ -111,8 +111,7 @@ RUN cosmocc -o zig-wasm2c.com stage1/wasm2c.c -O2 -std=c99 && \
 
 RUN ls -ARhl stage1/ src/main.zig
 # 2. Generate required 0.15.2 configuration and run the translation
-RUN ./zig1.com version || ./zig1.com version version || :
-RUN ./zig1.com help || ./zig1.com help help || :
+RUN ./zig1.com || :
 
 RUN set -ex; \
     # 1. Prepare required config
@@ -120,7 +119,7 @@ RUN set -ex; \
     \
     # 2. Execute with Double-Dashes and the -- terminator
     # This tells the compiler: "Everything after -- is a flag, not a command"
-    ./zig1.com build-obj -- \
+    ./zig1.com -- build-obj \
       --name=zig2 \
       -ofmt=c \
       -O2 \
