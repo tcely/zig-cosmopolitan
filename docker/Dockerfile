@@ -103,15 +103,17 @@ RUN cosmocc -o zig-wasm2c.com stage1/wasm2c.c -O2 -std=c99 && \
     cosmocc -o zig1.com zig1.c stage1/wasi.c -std=c99 -Os -lm -Wl,-z,stack-size=0x10000000
 
 RUN strings ./zig1.com | grep -E "^(build-exe|build-obj|update-zig1|-ofmt=|-O[0-9]|-mod|-deps)$" | sort -u
+RUN strings ./zig1.com | grep -E "update|zig2|target" | head -n 20
 
+RUN ls -ARhl stage1/ src/main.zig
 RUN ./zig1.com build-exe \
+    src/main.zig \
     -ofmt=c \
     -lc \
-    -OReleaseSmall \
+    -O2 \
     -target x86_64-linux-musl \
-    --name zig2 \
-    -femit-bin=zig2.c \
-    -Mroot=src/main.zig
+    -femit-bin=zig2.c || \
+    ./zig1.com update-zig1 -target x86_64-linux-musl
 
 RUN cosmocc -o zig2.com zig2.c -O2 -lm -Wl,-z,stack-size=0x10000000
 
