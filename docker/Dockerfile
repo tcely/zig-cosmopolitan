@@ -119,7 +119,7 @@ RUN set -ex; \
     # 2. Invoke with <lib-path> as the FIRST argument
     ./zig1.com lib build-obj \
       -ofmt=c \
-      -O2 \
+      -OReleaseSmall \
       -target=x86_64-linux-musl \
       -femit-bin=zig2.c \
       --mod build_options::stage1/config.zig \
