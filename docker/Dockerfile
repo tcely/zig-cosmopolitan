@@ -106,41 +106,25 @@ RUN cosmocc -o zig-wasm2c.com stage1/wasm2c.c -O2 -std=c99 && \
         -Istage1 \
         -O2 \
         -std=c99 \
-        -D_GNU_SOURCE \
         -lm -Wl,-z,stack-size=0x10000000
 
 RUN ls -ARhl stage1/ src/main.zig
 # 2. Generate required 0.15.2 configuration and run the translation
-RUN ./zig1.com || :
+#RUN ./zig1.com || :
 
 RUN set -ex; \
-    # 1. Prepare required config
+    # 1. Prepare config
     printf 'pub const version = "0.15.2";\npub const build_root = ".";\npub const cache_root = "zig-cache";\npub const global_cache_root = "zig-cache";\npub const std_root = "lib/std/std.zig";\n' > stage1/config.zig && \
     \
-    # 2. Execute with Double-Dashes and the -- terminator
-    # This tells the compiler: "Everything after -- is a flag, not a command"
-    ./zig1.com -- build-obj \
-      --name=zig2 \
+    # 2. Invoke with <lib-path> as the FIRST argument
+    ./zig1.com lib build-obj \
       -ofmt=c \
       -O2 \
-      --target=x86_64-linux-musl \
-      --mod=build_options::stage1/config.zig \
-      --mod=root::src/main.zig \
-      --deps=build_options || \
-    \
-    # 3. Fallback: The Absolute Minimalist Form
-    ./zig1.com -- \
-      -ofmt=c \
-      --target=x86_64-linux-musl \
-      --mod=root::src/main.zig; \
-    \
-    # 4. Resolve Output
-    if [ ! -f zig2.c ]; then \
-        find . -maxdepth 1 -name "*.c" ! -name "zig1.c" ! -name "wasi.c" -exec cp {} zig2.c \;; \
-    fi; \
-    \
-    # 5. Compile
-    [ -f zig2.c ] || (echo "FATAL: zig2.c not found" && exit 1);
+      -target=x86_64-linux-musl \
+      -femit-bin=zig2.c \
+      --mod build_options::stage1/config.zig \
+      --mod root::src/main.zig \
+      --deps build_options
 
 RUN cosmocc -o zig2.com zig2.c -O2 -lm -Wl,-z,stack-size=0x10000000
 
