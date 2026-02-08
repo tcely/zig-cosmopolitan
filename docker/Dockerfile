@@ -86,7 +86,7 @@ RUN . /build/common.sh && \
     rm zig-boot.tar.xz.sha256
 
 # Stage 2: Builder - Bootstrap and Verify
-FROM debian:${DEBIAN_VERSION}-slim AS builder
+FROM debian:${DEBIAN_VERSION}-slim AS builder_base
 RUN apt-get update && apt-get install -y file && rm -rf /var/lib/apt/lists/*
 COPY --from=extractor /opt/cosmocc /opt/cosmocc
 COPY --from=extractor /build/zig /build/zig
@@ -95,12 +95,17 @@ WORKDIR /build/zig
 
 RUN ls -ARhl stage1/ src/main.zig
 
+
 # Bootstrap sequence
+FROM builder_base AS builder_stage1
 RUN cosmocc -o zig-wasm2c.com stage1/wasm2c.c -O2 -std=c99 && \
     ./zig-wasm2c.com stage1/zig1.wasm zig1.c && \
-    cosmocc -o zig1.com zig1.c stage1/wasi.c -std=c99 -Os -lm -Wl,-z,stack-size=0x10000000 && \
-    ./zig1.com build-exe --name zig2 -ofmt=c -lc -OReleaseSmall \
-    -target x86_64-linux-musl --mod root::src/main.zig && \
+    cosmocc -o zig1.com zig1.c stage1/wasi.c -std=c99 -Os -lm -Wl,-z,stack-size=0x10000000
+
+FROM builder_stage1 AS builder
+RUN ./zig1.com build-exe --help
+RUN ./zig1.com build-exe -ofmt=c -OReleaseSmall \
+    -target x86_64-linux-musl --mod root:src/main.zig -depa root && \
     cosmocc -o zig2.com zig2.c -O2 -lm -Wl,-z,stack-size=0x10000000
 
 # Validation
