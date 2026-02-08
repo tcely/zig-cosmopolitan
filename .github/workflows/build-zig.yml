@@ -44,7 +44,7 @@ jobs:
           context: docker
           file: docker/Dockerfile
           platforms: linux/amd64
-          target: build_stage1
+          target: builder_stage1
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
