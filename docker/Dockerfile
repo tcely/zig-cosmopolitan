@@ -90,31 +90,26 @@ FROM debian:${DEBIAN_VERSION}-slim AS builder_base
 RUN apt-get update && apt-get install -y binutils file && rm -rf /var/lib/apt/lists/*
 COPY --from=extractor /opt/cosmocc /opt/cosmocc
 COPY --from=extractor /build/zig /build/zig
+COPY --from=extractor /build/zig_metadata.json /build/zig_metadata.json
 ENV PATH="/opt/cosmocc/bin:${PATH}"
 WORKDIR /build/zig
 
 # Bootstrap sequence
 FROM builder_base AS builder
+RUN cat -v /build/zig_metadata.json
 RUN ls -ARhl stage1/ src/main.zig
 RUN cosmocc -o zig-wasm2c.com stage1/wasm2c.c -O2 -std=c99 && \
     ./zig-wasm2c.com stage1/zig1.wasm zig1.c && \
     cosmocc -o zig1.com zig1.c stage1/wasi.c -std=c99 -Os -lm -Wl,-z,stack-size=0x10000000
 
-RUN strings ./zig1.com | grep -E "^(build-exe|build-obj|update-zig1|-ofmt=|-O[0-9]|--mod|--deps)$" | sort -u
+RUN strings ./zig1.com | grep -E "^(build-exe|build-obj|update-zig1|-ofmt=|-O[0-9]|-mod|-deps)$" | sort -u
 
-RUN ./zig1.com build-exe \
-    --mod root:src/main.zig \
-    --deps root \
-    -target x86_64-linux-musl \
+RUN ./zig1.com build-obj \
+    src/main.zig \
     -ofmt=c \
-    -lc \
-    -O2 || \
-    ./zig1.com build-obj \
-    --mod root:src/main.zig \
-    --deps root \
-    -target x86_64-linux-musl \
-    -ofmt=c \
-    -O2
+    -O2 \
+    -target x86_64-linux-musl || \
+    ./zig1.com update-zig1 -target x86_64-linux-musl
 
 RUN cosmocc -o zig2.com zig2.c -O2 -lm -Wl,-z,stack-size=0x10000000
 
