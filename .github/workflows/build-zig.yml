@@ -38,6 +38,16 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Build zig1.com
+        uses: docker/build-push-action@v5
+        with:
+          context: docker
+          file: docker/Dockerfile
+          platforms: linux/amd64
+          target: build_stage1
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       - name: Build and Extract
         uses: docker/build-push-action@v5
         with:
