@@ -99,8 +99,8 @@ RUN ls -ARhl stage1/ src/main.zig
 RUN cosmocc -o zig-wasm2c.com stage1/wasm2c.c -O2 -std=c99 && \
     ./zig-wasm2c.com stage1/zig1.wasm zig1.c && \
     cosmocc -o zig1.com zig1.c stage1/wasi.c -std=c99 -Os -lm -Wl,-z,stack-size=0x10000000 && \
-    ./zig1.com build-exe src/main.zig --name zig2 -ofmt=c -lc -OReleaseSmall \
-    -target x86_64-linux-musl --mod root:src/main.zig && \
+    ./zig1.com build-exe --name zig2 -ofmt=c -lc -OReleaseSmall \
+    -target x86_64-linux-musl --mod root::src/main.zig && \
     cosmocc -o zig2.com zig2.c -O2 -lm -Wl,-z,stack-size=0x10000000
 
 # Validation
