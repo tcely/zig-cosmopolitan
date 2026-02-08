@@ -102,18 +102,25 @@ RUN cosmocc -o zig-wasm2c.com stage1/wasm2c.c -O2 -std=c99 && \
     ./zig-wasm2c.com stage1/zig1.wasm zig1.c && \
     cosmocc -o zig1.com zig1.c stage1/wasi.c -std=c99 -Os -lm -Wl,-z,stack-size=0x10000000
 
-RUN strings ./zig1.com | grep -E "^(build-exe|build-obj|update-zig1|-ofmt=|-O[0-9]|-mod|-deps)$" | sort -u
-RUN strings ./zig1.com | grep -E "update|zig2|target" | head -n 20
-
 RUN ls -ARhl stage1/ src/main.zig
-RUN ./zig1.com build-exe \
-    src/main.zig \
-    -ofmt=c \
-    -lc \
-    -O2 \
-    -target x86_64-linux-musl \
-    -femit-bin=zig2.c || \
-    ./zig1.com update-zig1 -target x86_64-linux-musl
+RUN set -x; \
+    # 1. Generate the required bootstrap config file (Essential for 0.15.x)
+    sed 's/@ZIG_VERSION@/0.15.2/; s/@ZIG_VERSION_STRING@/0.15.2/' \
+        stage1/config.zig.in > stage1/config.zig && \
+    # 2. Try patterns until one sticks
+    ( \
+        # Pattern A: The "Internal" Bootstrap command (Most likely for 0.15.x)
+        ./zig1.com update-zig1 -target x86_64-linux-musl -ofmt=c -O2 || \
+        # Pattern B: Modern Module syntax (short-form)
+        ./zig1.com build-exe -Mroot=src/main.zig -target x86_64-linux-musl -ofmt=c -O2 -femit-bin=zig2.c || \
+        # Pattern C: Legacy Positional syntax
+        ./zig1.com build-obj src/main.zig -target x86_64-linux-musl -ofmt=c -O2 -femit-bin=zig2.c || \
+        # Pattern D: Bare execution (no subcommand)
+        ./zig1.com -target x86_64-linux-musl -ofmt=c -O2 -femit-bin=zig2.c src/main.zig \
+    ) && \
+    # 3. Locate the output (it might not be named zig2.c)
+    find . -maxdepth 1 -name "*.c" -not -name "zig1.c" -not -name "wasi.c" -exec cp {} zig2.c \; && \
+    ls -l zig2.c
 
 RUN cosmocc -o zig2.com zig2.c -O2 -lm -Wl,-z,stack-size=0x10000000
 
