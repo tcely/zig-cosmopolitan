@@ -26,22 +26,22 @@ RUN lines() { printf -- '%s\n' "$@"; } && \
 # Record GPG Key Metadata (Stable identity)
 ENV COSMO_GPG_PUBLIC_ID="0x65A68CC8F87C5311"
 ENV COSMO_GPG_FINGERPRINT="9924 9E69 A705 668F 9983  9365 65A6 8CC8 F87C 5311"
-ARG COSMO_AUTHOR_HOST="justine.lol"
-ADD "https://${COSMO_AUTHOR_HOST}/cosmos.asc" /build/author.asc
+ARG HOST_GH_WEB="github.com"
+ARG HOST_COSMO_AUTHOR="justine.lol"
+ADD "https://${HOST_GH_WEB}/jart.gpg" /build/author.asc
 
 # Cosmopolitan Toolchain Arguments
-ARG COSMO_GH_HOST="github.com"
-ARG COSMO_DL_HOST="cosmo.zip"
+ARG HOST_COSMO_DL="cosmo.zip"
 ARG COSMO_VER="4.0.2"
 ARG COSMO_SHA="85b8c37a406d862e656ad4ec14be9f6ce474c1b436b9615e91a55208aced3f44"
-ADD "https://${COSMO_GH_HOST}/jart/cosmopolitan/releases/download/${COSMO_VER}/cosmocc-${COSMO_VER}.zip" /build/cosmocc.zip
+ADD "https://${HOST_GH_WEB}/jart/cosmopolitan/releases/download/${COSMO_VER}/cosmocc-${COSMO_VER}.zip" /build/cosmocc.zip
 
 # Verify Toolchain Digest and Signature
 RUN . /build/common.sh && \
     cd /build || fatal "Failed to enter /build" && \
     printf '%s *cosmocc.zip\n' "${COSMO_SHA}" > cosmocc.zip.sha256 && \
     sha256sum --check cosmocc.zip.sha256 || fatal "Cosmo SHA256 mismatch" && \
-    SIG_URL="https://${COSMO_DL_HOST}/pub/cosmocc/cosmocc-${COSMO_VER}.zip.sig" && \
+    SIG_URL="https://${HOST_COSMO_DL}/pub/cosmocc/cosmocc-${COSMO_VER}.zip.sig" && \
     if curl -o /build/cosmocc.zip.sig -sSfL "${SIG_URL}"; then \
         gpg2 --import author.asc || fatal "Failed to import GPG key" && \
         ACTUAL_FPR=$(gpg2 --with-colons --with-fingerprint --list-keys "${COSMO_GPG_PUBLIC_ID}" | awk -F: '/^fpr/ {print $10}') && \
@@ -54,8 +54,8 @@ RUN . /build/common.sh && \
     rm cosmocc.zip cosmocc.zip.sig author.asc cosmocc.zip.sha256
 
 # Zig Metadata, Source, and Bootstrap Extraction
-ARG ZIG_DL_HOST="ziglang.org"
-ADD "https://${ZIG_DL_HOST}/download/index.json" /build/zig_index.json
+ARG HOST_ZIG_DL="ziglang.org"
+ADD "https://${HOST_ZIG_DL}/download/index.json" /build/zig_index.json
 
 RUN . /build/common.sh && \
     { \
