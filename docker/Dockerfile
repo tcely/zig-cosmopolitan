@@ -19,6 +19,10 @@ WORKDIR /build
 
 RUN lines() { printf -- '%s\n' "$@"; } && \
     { lines \
+    'extract() {' \
+    '    local file; file="$1"; shift;' \
+    '    bsdtar -xf "${file}" "$@" ;' \
+    "}" \
     "err() { printf 1>&2 -- '%s\n' \"\$@\"; }" \
     "fatal() { err \"\$1\"; exit 1; }"; \
     } > /build/common.sh
@@ -50,7 +54,7 @@ RUN . /build/common.sh && \
         gpg2 --verify cosmocc.zip.sig cosmocc.zip || fatal "GPG signature verification failed"; \
     fi && \
     mkdir -p /opt/cosmocc && \
-    bsdtar -xf cosmocc.zip -C /opt/cosmocc
+    extract cosmocc.zip -C /opt/cosmocc
 
 # Zig Metadata, Source, and Bootstrap Extraction
 ARG HOST_ZIG_DL="ziglang.org"
@@ -68,7 +72,7 @@ RUN . /build/common.sh && \
     printf '%s *zig-src.tar.xz\n' "${SRC_SHA}" > zig-src.tar.xz.sha256 && \
     sha256sum --check zig-src.tar.xz.sha256 || fatal "Zig source SHA256 mismatch" && \
     mkdir /build/zig && \
-    bsdtar --use-compress-program=pixz -xf zig-src.tar.xz -C /build/zig --strip-components=1 && \
+    extract zig-src.tar.xz -C /build/zig --strip-components=1 && \
     rm zig-src.tar.xz zig-src.tar.xz.sha256 && \
     # 2. Process Bootstrap
     BOOT_URL=$(jq -r '.bootstrap.tarball' /build/zig_metadata.json) && \
@@ -76,7 +80,7 @@ RUN . /build/common.sh && \
     curl -o zig-boot.tar.xz -L "${BOOT_URL}" || fatal "Failed to download Zig bootstrap" && \
     printf '%s *zig-boot.tar.xz\n' "${BOOT_SHA}" > zig-boot.tar.xz.sha256 && \
     sha256sum --check zig-boot.tar.xz.sha256 || fatal "Zig bootstrap SHA256 mismatch" && \
-    bsdtar --use-compress-program=pixz -xf zig-boot.tar.xz -C /build/zig --strip-components=1 && \
+    extract zig-boot.tar.xz -C /build/zig --strip-components=1 && \
     rm zig-boot.tar.xz zig-boot.tar.xz.sha256
 
 # Stage 2: Builder - Bootstrap and Verify
