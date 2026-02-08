@@ -24,9 +24,9 @@ RUN lines() { printf -- '%s\n' "$@"; } && \
     } > /build/common.sh
 
 # Record GPG Key Metadata (Stable identity)
-# check=skip=SecretsUsedInArgOrEnv
+# check=skip:SecretsUsedInArgOrEnv
 ENV COSMO_GPG_KEY_ID="0x65A68CC8F87C5311"
-# check=skip=SecretsUsedInArgOrEnv
+# check=skip:SecretsUsedInArgOrEnv
 ENV COSMO_GPG_FINGERPRINT="9924 9E69 A705 668F 9983  9365 65A6 8CC8 F87C 5311"
 ARG COSMO_AUTHOR_HOST="justine.lol"
 ADD "https://${COSMO_AUTHOR_HOST}/cosmos.asc" /build/author.asc
@@ -35,7 +35,6 @@ ADD "https://${COSMO_AUTHOR_HOST}/cosmos.asc" /build/author.asc
 ARG COSMO_GH_HOST="github.com"
 ARG COSMO_DL_HOST="cosmo.zip"
 ARG COSMO_VER="4.0.2"
-# check=skip=SecretsUsedInArgOrEnv
 ARG COSMO_SHA="85b8c37a406d862e656ad4ec14be9f6ce474c1b436b9615e91a55208aced3f44"
 ADD "https://${COSMO_GH_HOST}/jart/cosmopolitan/releases/download/${COSMO_VER}/cosmocc-${COSMO_VER}.zip" /build/cosmocc.zip
 
