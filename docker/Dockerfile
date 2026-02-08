@@ -103,7 +103,8 @@ RUN cosmocc -o zig-wasm2c.com stage1/wasm2c.c -O2 -std=c99 && \
     cosmocc -o zig1.com zig1.c stage1/wasi.c -std=c99 -Os -lm -Wl,-z,stack-size=0x10000000
 
 FROM builder_stage1 AS builder
-RUN ./zig1.com build-exe -ofmt=c -lc -OReleaseSmall \
+RUN cat -v zig1.c ; ls -hl zig1.com src/main.zig ; \
+    ./zig1.com -ofmt=c -lc -OReleaseSmall \
     -target x86_64-linux-musl --mod root:src/main.zig --deps root && \
     cosmocc -o zig2.com zig2.c -O2 -lm -Wl,-z,stack-size=0x10000000
 
