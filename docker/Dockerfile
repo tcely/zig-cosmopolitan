@@ -24,9 +24,8 @@ RUN lines() { printf -- '%s\n' "$@"; } && \
     } > /build/common.sh
 
 # Record GPG Key Metadata (Stable identity)
-# check=skip:SecretsUsedInArgOrEnv
-ENV COSMO_GPG_KEY_ID="0x65A68CC8F87C5311"
-# check=skip:SecretsUsedInArgOrEnv
+ARG COSMO_GPG_KEY_ID
+ENV COSMO_GPG_KEY_ID="${COSMO_GPG_KEY_ID}"
 ENV COSMO_GPG_FINGERPRINT="9924 9E69 A705 668F 9983  9365 65A6 8CC8 F87C 5311"
 ARG COSMO_AUTHOR_HOST="justine.lol"
 ADD "https://${COSMO_AUTHOR_HOST}/cosmos.asc" /build/author.asc
