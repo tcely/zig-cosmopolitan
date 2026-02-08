@@ -72,16 +72,18 @@ RUN . /build/common.sh && \
     printf '%s *zig-src.tar.xz\n' "${SRC_SHA}" > zig-src.tar.xz.sha256 && \
     sha256sum --check zig-src.tar.xz.sha256 || fatal "Zig source SHA256 mismatch" && \
     mkdir /build/zig && \
-    extract zig-src.tar.xz -C /build/zig --strip-components=1 && \
-    rm zig-src.tar.xz zig-src.tar.xz.sha256 && \
+    pixz -d zig-src.tar.xz && \
+    extract zig-src.tar -C /build/zig --strip-components=1 && \
+    rm zig-src.tar.xz.sha256 && \
     # 2. Process Bootstrap
     BOOT_URL=$(jq -r '.bootstrap.tarball' /build/zig_metadata.json) && \
     BOOT_SHA=$(jq -r '.bootstrap.shasum' /build/zig_metadata.json) && \
     curl -o zig-boot.tar.xz -L "${BOOT_URL}" || fatal "Failed to download Zig bootstrap" && \
     printf '%s *zig-boot.tar.xz\n' "${BOOT_SHA}" > zig-boot.tar.xz.sha256 && \
     sha256sum --check zig-boot.tar.xz.sha256 || fatal "Zig bootstrap SHA256 mismatch" && \
-    extract zig-boot.tar.xz -C /build/zig --strip-components=1 && \
-    rm zig-boot.tar.xz zig-boot.tar.xz.sha256
+    pixz -d zig-boot.tar.xz && \
+    extract zig-boot.tar -C /build/zig --strip-components=1 && \
+    rm zig-boot.tar.xz.sha256
 
 # Stage 2: Builder - Bootstrap and Verify
 FROM debian:${DEBIAN_VERSION}-slim AS builder
@@ -91,7 +93,7 @@ COPY --from=extractor /build/zig /build/zig
 ENV PATH="/opt/cosmocc/bin:${PATH}"
 WORKDIR /build/zig
 
-RUN ls -R stage1/
+RUN ls -ARhl stage1/ src/main.zig
 
 # Bootstrap sequence
 RUN cosmocc -o zig-wasm2c.com stage1/wasm2c.c -O2 -std=c99 && \
