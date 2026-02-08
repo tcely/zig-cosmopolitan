@@ -38,13 +38,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build zig1.com
+      - name: Build base builder
         uses: docker/build-push-action@v5
         with:
           context: docker
           file: docker/Dockerfile
           platforms: linux/amd64
-          target: builder_stage1
+          target: builder_base
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
