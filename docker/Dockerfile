@@ -102,11 +102,17 @@ RUN ls -ARhl stage1/ src/main.zig
 # We include -Istage1 to ensure wasi.c finds the correct headers
 RUN cosmocc -o zig-wasm2c.com stage1/wasm2c.c -O2 -std=c99 && \
     ./zig-wasm2c.com stage1/zig1.wasm zig1.c && \
-    cosmocc -o zig1.com zig1.c stage1/wasi.c -Istage1 -std=c99 -Os -lm -Wl,-z,stack-size=0x10000000
+    cosmocc -o zig1.com zig1.c stage1/wasi.c \
+        -Istage1 \
+        -O2 \
+        -std=c99 \
+        -D_GNU_SOURCE \
+        -lm -Wl,-z,stack-size=0x10000000
 
 RUN ls -ARhl stage1/ src/main.zig
 # 2. Generate required 0.15.2 configuration and run the translation
-RUN ./zig1.com version || :
+RUN ./zig1.com version || ./zig1.com version version || :
+RUN ./zig1.com help || ./zig1.com help help || :
 
 RUN set -ex; \
     # 1. Prepare required config
